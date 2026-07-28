@@ -1,6 +1,6 @@
 # Algebra Project Plan
 
-> **Status:** proposed direction; planning and pre-bootstrap  
+> **Status:** proposed architecture direction; bootstrap seed implemented
 > **Target:** x86_64  
 > **System name:** Algebra  
 > **Repository:** `algebra-os`
@@ -80,9 +80,13 @@ The following should remain outside the kernel wherever practical:
 
 Moving code into user space does not make it safe automatically. Until an IOMMU is configured, a DMA-capable driver and its device remain part of the effective trusted base.
 
-### Initial boot proposal
+### Initial boot route
 
-The leading proposal is an original x86_64 UEFI loader, first tested under emulation and later on one explicitly selected physical machine.
+The accepted initial route begins with an original x86_64 UEFI application,
+first tested under emulation and later on one explicitly selected physical
+machine. [ADR 0001](decisions/0001-uefi-x86-64-seed.md) fixes only the
+firmware-to-seed boundary; evolving the seed into the system loader remains M1
+work.
 
 The proposed transition is:
 
@@ -90,7 +94,9 @@ The proposed transition is:
 
 The loader would implement only the required firmware and image formats from their published specifications. It would not use an external bootloader or target runtime.
 
-UEFI-first remains a proposal to be recorded as an architecture decision. Legacy BIOS support is not an initial requirement.
+UEFI-first is accepted for the bootstrap seed. The precise firmware subset
+beyond image entry and console output remains to be decided. Legacy BIOS
+support is not an initial requirement.
 
 ## 4. Security program
 
@@ -334,7 +340,7 @@ The following must be resolved through written architecture decisions rather tha
 - exact x86_64 feature baseline;
 - initial emulator profile;
 - first physical reference machine;
-- UEFI-first boot and the precise firmware subset;
+- precise UEFI subset beyond the accepted seed handoff;
 - system-image and executable formats;
 - synchronous, asynchronous, or combined IPC;
 - capability derivation, delegation, and revocation;

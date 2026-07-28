@@ -2,7 +2,9 @@
 
 **Algebra** is a from-scratch operating system for x86_64: minimal at its privileged foundation, powerful through composition, and intended to remain understandable from firmware handoff to native development environment.
 
-> **Status:** planning and pre-bootstrap. There is no bootable release yet, and no claim of security or formal verification is being made.
+> **Status:** bootstrap seed. An inspectable x86_64 UEFI seed image can be built,
+> but emulator boot evidence, a kernel, and any claim of security or formal
+> verification do not yet exist.
 
 Algebra is not Linux, a Linux distribution, or a fork of another operating system. It is a project by Chase Bryan.
 
@@ -89,6 +91,20 @@ The first path is:
 9. Build Algebra from within Algebra.
 
 Detailed milestones and acceptance gates are recorded in [docs/PLAN.md](docs/PLAN.md).
+
+## Build the bootstrap seed
+
+With GNU binutils, POSIX `sh`, and `make` available:
+
+```sh
+make
+make check
+```
+
+This creates the removable-media path
+`build/esp/EFI/BOOT/BOOTX64.EFI`, audits the image boundary, and verifies that
+two clean builds are byte-identical. See [docs/BOOTSTRAP.md](docs/BOOTSTRAP.md)
+for the exact scope, host-tool provenance, and current verification limits.
 
 ## The name
 
