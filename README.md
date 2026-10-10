@@ -1,5 +1,7 @@
 # Algebra
 
+[![Bootstrap seed](https://github.com/chasebryan/algebra-os/actions/workflows/bootstrap.yml/badge.svg?branch=main)](https://github.com/chasebryan/algebra-os/actions/workflows/bootstrap.yml)
+
 **Algebra** is a from-scratch operating system for x86_64: minimal at its privileged foundation, powerful through composition, and intended to remain understandable from firmware handoff to native development environment.
 
 > **Status:** bootstrap seed. An inspectable x86_64 UEFI seed image can be built,
