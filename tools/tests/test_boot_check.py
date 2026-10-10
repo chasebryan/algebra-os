@@ -57,6 +57,7 @@ class BootCheckTests(unittest.TestCase):
             def launch(command, **kwargs):
                 # The guest must use copies, not mutable repository inputs.
                 self.assertNotIn(f"format=raw,file=fat:rw:{esp}", command)
+                self.assertTrue(Path(kwargs["env"]["TMPDIR"]).is_dir())
                 (output / "serial.log").write_bytes(serial_bytes)
                 return process
 

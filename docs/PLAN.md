@@ -1,11 +1,30 @@
 # Algebra Project Plan
 
-> **Status:** proposed architecture direction; bootstrap seed implemented
+> **Status:** architecture direction; controlled emulator handoff implemented
 > **Target:** x86_64  
 > **System name:** Algebra  
 > **Repository:** `algebra-os`
 
 This document records the current direction of Algebra. It is a working charter, not an implemented architecture, stable ABI, release promise, or security claim.
+
+## Current implementation evidence
+
+The M1 emulator gate is implemented: an original UEFI image retrieves and
+validates the firmware map, exits boot services with bounded stale-key
+retries, and enters an embedded kernel stub on its own stack with boot
+information version 1. Two fresh emulator boots must produce all three
+serial records in order. A separate test image deliberately supplies a
+stale first map key and must also reach the kernel in two fresh boots.
+
+`make check` verifies static image structure and byte-identical clean
+builds. `make boot-check` captures the emulator profile, firmware/image
+hashes, serial logs, and per-boot result. CI also runs the host regression
+tests, which execute the target memory-map validator on boundary cases.
+See [BOOTSTRAP.md](BOOTSTRAP.md) and ADRs 0002–0004 for exact evidence limits.
+
+M2 remains next: Algebra-owned processor tables, fault handling, page
+tables, and frame accounting. The current kernel stub still inherits
+firmware processor state and halts after its diagnostic.
 
 ## 1. Charter
 
@@ -207,7 +226,7 @@ Produce:
 
 ### M1 — Controlled handoff
 
-Implement the selected boot route, with UEFI as the current proposal.
+Implement the selected x86_64 UEFI boot route.
 
 Produce:
 

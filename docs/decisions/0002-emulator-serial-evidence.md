@@ -5,6 +5,8 @@
 
 [ADR 0003](0003-bounded-firmware-memory-map.md) extends the evidence gate
 to require a memory-map validation record as well as the serial entry record.
+[ADR 0004](0004-controlled-kernel-handoff.md) further requires the post-exit
+kernel record; successful boot now transfers control permanently to Algebra.
 
 ## Decision
 

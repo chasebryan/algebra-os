@@ -4,6 +4,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -51,7 +52,8 @@ def boot(qemu, esp, code, variables, output, timeout):
         ]
         (output / "command.json").write_text(json.dumps(command, indent=2) + "\n")
         with (output / "qemu.log").open("wb") as log:
-            process = subprocess.Popen(command, stdout=log, stderr=log)
+            environment = dict(os.environ, TMPDIR=str(scratch))
+            process = subprocess.Popen(command, stdout=log, stderr=log, env=environment)
             try:
                 deadline = time.monotonic() + timeout
                 while True:

@@ -29,6 +29,12 @@ COM1 output is reusable assembly code and uses no firmware interfaces.
 The boot test requires entry, map validation, and kernel records in that
 order in two fresh boots. Other firmware text between records is permitted.
 
+A separate CI build defines `TEST_STALE_MAP_KEY`, changing exactly the first
+exit attempt's key. It must still reach the kernel in two fresh boots after
+reacquiring the map. That test variant is built in `build/stale-key` and its
+image and logs are retained separately; the ordinary image contains no
+injected key change.
+
 ## Boot information version 1
 
 All integers are little-endian. Pointers are 64-bit addresses in the inherited

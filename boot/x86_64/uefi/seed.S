@@ -65,6 +65,12 @@ efi_main:
 	incl exit_attempts(%rip)
 	movq 40(%rsp), %rcx
 	movq map_key(%rip), %rdx
+.ifdef TEST_STALE_MAP_KEY
+	cmpl $1, exit_attempts(%rip)
+	jne .Ltest_key_ready
+	xorq $1, %rdx                /* Test build: invalidate exactly the first key. */
+.Ltest_key_ready:
+.endif
 	call *EFI_BOOT_SERVICES_EXIT_BOOT_SERVICES(%r12)
 	testq %rax, %rax
 	jz .Lhandoff

@@ -56,6 +56,9 @@ jobs:
           python3 -m unittest discover -s tools/tests -v
           make boot-check
 
+      - name: Recover from a deliberately stale first map key
+        run: make BUILD_DIR=build/stale-key ASFLAGS=--defsym=TEST_STALE_MAP_KEY=1 boot-check
+
       - name: Publish seed image
         if: always() && hashFiles('build/esp/EFI/BOOT/BOOTX64.EFI') != ''
         uses: actions/upload-artifact@v4
@@ -64,4 +67,6 @@ jobs:
           path: |
             build/esp/EFI/BOOT/BOOTX64.EFI
             build/boot-evidence/
+            build/stale-key/esp/EFI/BOOT/BOOTX64.EFI
+            build/stale-key/boot-evidence/
           if-no-files-found: error

@@ -1,4 +1,5 @@
 AS ?= as
+ASFLAGS ?=
 LD ?= ld
 OBJCOPY ?= objcopy
 OBJDUMP ?= objdump
@@ -29,16 +30,16 @@ $(SEED_DIR) $(ESP_DIR)/EFI/BOOT:
 	mkdir -p $@
 
 $(SEED_OBJECT): boot/x86_64/uefi/seed.S | $(SEED_DIR)
-	$(AS) --64 --fatal-warnings -o $@ $<
+	$(AS) --64 --fatal-warnings $(ASFLAGS) -o $@ $<
 
 $(MAP_OBJECT): boot/x86_64/uefi/memory-map.S | $(SEED_DIR)
-	$(AS) --64 --fatal-warnings -o $@ $<
+	$(AS) --64 --fatal-warnings $(ASFLAGS) -o $@ $<
 
 $(SERIAL_OBJECT): boot/x86_64/uefi/serial.S | $(SEED_DIR)
-	$(AS) --64 --fatal-warnings -o $@ $<
+	$(AS) --64 --fatal-warnings $(ASFLAGS) -o $@ $<
 
 $(KERNEL_OBJECT): boot/x86_64/uefi/kernel-entry.S | $(SEED_DIR)
-	$(AS) --64 --fatal-warnings -o $@ $<
+	$(AS) --64 --fatal-warnings $(ASFLAGS) -o $@ $<
 
 $(SEED_ELF): $(SEED_OBJECT) $(MAP_OBJECT) $(SERIAL_OBJECT) $(KERNEL_OBJECT) boot/x86_64/uefi/seed.ld
 	$(LD) -nostdlib --fatal-warnings --build-id=none \
