@@ -32,7 +32,8 @@ jobs:
           test -f Makefile
           test -f boot/x86_64/uefi/seed.S
           test -f boot/x86_64/uefi/seed.ld
-          test -x tools/audit-seed.sh
+          test -f tools/audit-seed.sh
+          sh -n tools/audit-seed.sh
 
       - name: Install bootstrap host tools
         run: |
