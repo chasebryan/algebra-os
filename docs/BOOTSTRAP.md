@@ -59,8 +59,12 @@ and variable files. Defaults are `/usr/share/OVMF/OVMF_CODE_4M.fd` and
 `/usr/share/OVMF/OVMF_VARS_4M.fd`; override `OVMF_CODE`, `OVMF_VARS`, and
 `QEMU` when necessary. The emulator must support `pc-q35-8.2`.
 
-Two fresh boots must each emit `Algebra serial 0001: uefi entry` over COM1
-within 30 seconds. Logs and measured inputs are retained under
+Two fresh boots must each emit `Algebra serial 0001: uefi entry` and
+`Algebra memory map 0001: validated` over COM1 within 30 seconds.
+The firmware map is retrieved into a bounded buffer and its descriptor
+shape and address arithmetic are checked by the target assembly validator.
+See [ADR 0003](decisions/0003-bounded-firmware-memory-map.md).
+Logs and measured inputs are retained under
 `build/boot-evidence/run-*/`, including failures. The source ESP and firmware
 variable template are copied before starting the guest. See
 [ADR 0002](decisions/0002-emulator-serial-evidence.md) for the complete

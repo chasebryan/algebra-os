@@ -3,6 +3,9 @@
 - **Status:** accepted for emulator bootstrap
 - **Scope:** UEFI seed runtime evidence
 
+[ADR 0003](0003-bounded-firmware-memory-map.md) extends the evidence gate
+to require a memory-map validation record as well as the serial entry record.
+
 ## Decision
 
 The bootstrap reference profile is QEMU's versioned `pc-q35-8.2` machine,

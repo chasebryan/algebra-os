@@ -13,6 +13,7 @@ BUILD_DIR ?= build
 SEED_DIR := $(BUILD_DIR)/seed
 ESP_DIR := $(BUILD_DIR)/esp
 SEED_OBJECT := $(SEED_DIR)/seed.o
+MAP_OBJECT := $(SEED_DIR)/memory-map.o
 SEED_ELF := $(SEED_DIR)/seed.elf
 SEED_EFI := $(ESP_DIR)/EFI/BOOT/BOOTX64.EFI
 
@@ -28,9 +29,12 @@ $(SEED_DIR) $(ESP_DIR)/EFI/BOOT:
 $(SEED_OBJECT): boot/x86_64/uefi/seed.S | $(SEED_DIR)
 	$(AS) --64 --fatal-warnings -o $@ $<
 
-$(SEED_ELF): $(SEED_OBJECT) boot/x86_64/uefi/seed.ld
+$(MAP_OBJECT): boot/x86_64/uefi/memory-map.S | $(SEED_DIR)
+	$(AS) --64 --fatal-warnings -o $@ $<
+
+$(SEED_ELF): $(SEED_OBJECT) $(MAP_OBJECT) boot/x86_64/uefi/seed.ld
 	$(LD) -nostdlib --fatal-warnings --build-id=none \
-		-T boot/x86_64/uefi/seed.ld -o $@ $(SEED_OBJECT)
+		-T boot/x86_64/uefi/seed.ld -o $@ $(SEED_OBJECT) $(MAP_OBJECT)
 
 $(SEED_EFI): $(SEED_ELF) | $(ESP_DIR)/EFI/BOOT
 	SOURCE_DATE_EPOCH=0 $(OBJCOPY) \

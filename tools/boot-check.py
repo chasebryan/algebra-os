@@ -11,7 +11,10 @@ import tempfile
 import time
 
 
-MARKER = b"Algebra serial 0001: uefi entry\r\n"
+MARKER = (
+    b"Algebra serial 0001: uefi entry\r\n"
+    b"Algebra memory map 0001: validated\r\n"
+)
 
 
 def digest(path):

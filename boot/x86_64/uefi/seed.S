@@ -8,6 +8,8 @@
 
 .equ EFI_SYSTEM_TABLE_CON_OUT, 64
 .equ EFI_SIMPLE_TEXT_OUTPUT_STRING, 8
+.equ EFI_SYSTEM_TABLE_BOOT_SERVICES, 96
+.equ EFI_BOOT_SERVICES_GET_MEMORY_MAP, 56
 .equ IMAGE_REL_BASED_DIR64, 10
 
 .section .text.entry, "ax", @progbits
@@ -18,15 +20,49 @@ efi_main:
 	/* UEFI x64 entry: RCX = image handle, RDX = system table. */
 	pushq %rbp
 	movq %rsp, %rbp
-	subq $32, %rsp
+	pushq %r12
+	pushq %r13
+	pushq %rdi
+	pushq %rsi
+	subq $48, %rsp               /* Shadow space plus fifth argument. */
+	movq EFI_SYSTEM_TABLE_BOOT_SERVICES(%rdx), %r12
 
 	/* ConOut->OutputString(ConOut, seed_message). */
 	movq EFI_SYSTEM_TABLE_CON_OUT(%rdx), %rcx
 	movq seed_message_pointer(%rip), %rdx
 	movq EFI_SIMPLE_TEXT_OUTPUT_STRING(%rcx), %rax
 	call *%rax
+	movq %rax, %r13              /* Preserve console status over firmware calls. */
 
-	/* Preserve OutputString's status across bounded COM1 diagnostics.
+	/* One fixed buffer bounds early firmware-map handling. */
+	movq $65536, map_size(%rip)
+	leaq map_size(%rip), %rcx
+	leaq memory_map(%rip), %rdx
+	leaq map_key(%rip), %r8
+	leaq descriptor_size(%rip), %r9
+	leaq descriptor_version(%rip), %rax
+	movq %rax, 32(%rsp)
+	call *EFI_BOOT_SERVICES_GET_MEMORY_MAP(%r12)
+	testq %rax, %rax
+	jnz .Lmap_failed
+
+	leaq memory_map(%rip), %rdi
+	movq map_size(%rip), %rsi
+	movq descriptor_size(%rip), %rdx
+	movl descriptor_version(%rip), %ecx
+	call validate_memory_map
+	testl %eax, %eax
+	jnz .Lmap_invalid
+	movq %r13, %rax
+	leaq serial_message(%rip), %r8
+	jmp .Lserial_init
+.Lmap_invalid:
+	movabsq $0x8000000000000002, %rax  /* EFI_INVALID_PARAMETER. */
+.Lmap_failed:
+	leaq serial_failure(%rip), %r8
+.Lserial_init:
+
+	/* Preserve the chosen EFI status across bounded COM1 diagnostics.
 	 * Only volatile x64 ABI registers are used below. See ADR 0002.
 	 */
 	movq %rax, %r11
@@ -51,7 +87,6 @@ efi_main:
 	movw $0x3fc, %dx
 	movb $3, %al
 	outb %al, %dx                 /* DTR and RTS. */
-	leaq serial_message(%rip), %r8
 .Lserial_next:
 	movb (%r8), %r10b
 	testb %r10b, %r10b
@@ -73,6 +108,11 @@ efi_main:
 	jmp .Lserial_next
 .Lserial_done:
 	movq %r11, %rax
+	addq $48, %rsp
+	popq %rsi
+	popq %rdi
+	popq %r13
+	popq %r12
 	leave
 	ret
 .size efi_main, . - efi_main
@@ -86,7 +126,10 @@ seed_message:
 	.short 13, 10, 0
 
 serial_message:
-	.asciz "Algebra serial 0001: uefi entry\r\n"
+	.ascii "Algebra serial 0001: uefi entry\r\n"
+	.asciz "Algebra memory map 0001: validated\r\n"
+serial_failure:
+	.asciz "Algebra memory map 0001: failed\r\n"
 
 /*
  * Keeping the message address as data gives the seed one real DIR64 base
@@ -97,6 +140,18 @@ serial_message:
 .Ldata_page:
 seed_message_pointer:
 	.quad seed_message
+.p2align 3
+map_size:
+	.quad 0
+map_key:
+	.quad 0
+descriptor_size:
+	.quad 0
+descriptor_version:
+	.long 0
+.p2align 3
+memory_map:
+	.fill 65536, 1, 0
 
 .section .reloc, "a", @progbits
 .p2align 2
