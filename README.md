@@ -7,8 +7,10 @@
 > **Status:** controlled emulator handoff. The original x86_64 UEFI image
 > validates its firmware memory map, exits boot services, and enters an
 > embedded kernel stub on its own stack. Static checks, reproducibility,
-> and two QEMU/OVMF boots gate the bootstrap. Machine foundations and
-> evidence of security or formal verification remain future work.
+> and two QEMU/OVMF boots gate the bootstrap. Owned processor tables and
+> classified fault diagnostics begin the machine foundation; page tables,
+> frame accounting, and user isolation remain upcoming work. Evidence
+> of security or formal verification remains future work.
 
 Algebra is not Linux, a Linux distribution, or a fork of another operating system. It is a project by Chase Bryan.
 

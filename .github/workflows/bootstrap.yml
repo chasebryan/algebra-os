@@ -8,6 +8,7 @@ on:
   pull_request:
     branches:
       - main
+      - "codex/**"
   workflow_dispatch:
 
 permissions:
@@ -59,6 +60,15 @@ jobs:
       - name: Recover from a deliberately stale first map key
         run: make BUILD_DIR=build/stale-key ASFLAGS=--defsym=TEST_STALE_MAP_KEY=1 boot-check
 
+      - name: Classify deliberately raised processor faults
+        run: |
+          make BUILD_DIR=build/fault-breakpoint ASFLAGS=--defsym=TEST_BREAKPOINT=1 BOOT_CHECK_FLAGS='--expect-fault 3 --expect-error 0' boot-check
+          make BUILD_DIR=build/fault-divide ASFLAGS=--defsym=TEST_DIVIDE_ERROR=1 BOOT_CHECK_FLAGS='--expect-fault 0 --expect-error 0 --expect-register rax=1 --expect-register rcx=0 --expect-register rdx=0' boot-check
+          make BUILD_DIR=build/fault-invalid-opcode ASFLAGS=--defsym=TEST_INVALID_OPCODE=1 BOOT_CHECK_FLAGS='--expect-fault 6 --expect-error 0' boot-check
+          make BUILD_DIR=build/fault-general-protection ASFLAGS=--defsym=TEST_GENERAL_PROTECTION=1 BOOT_CHECK_FLAGS='--expect-fault 13 --expect-error 0xfff8' boot-check
+          make BUILD_DIR=build/fault-page ASFLAGS=--defsym=TEST_PAGE_FAULT=1 BOOT_CHECK_FLAGS='--expect-fault 14 --expect-error 0 --expect-cr2 0x400000000000 --expect-register rax=0x400000000000' boot-check
+          make BUILD_DIR=build/fault-double ASFLAGS=--defsym=TEST_DOUBLE_FAULT=1 BOOT_CHECK_FLAGS='--expect-fault 8 --expect-error 0 --expect-register rsp=0' boot-check
+
       - name: Publish seed image
         if: always() && hashFiles('build/esp/EFI/BOOT/BOOTX64.EFI') != ''
         uses: actions/upload-artifact@v4
@@ -69,4 +79,6 @@ jobs:
             build/boot-evidence/
             build/stale-key/esp/EFI/BOOT/BOOTX64.EFI
             build/stale-key/boot-evidence/
+            build/fault-*/esp/EFI/BOOT/BOOTX64.EFI
+            build/fault-*/boot-evidence/
           if-no-files-found: error
