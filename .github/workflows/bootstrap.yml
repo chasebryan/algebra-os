@@ -29,6 +29,9 @@ jobs:
 
       - name: Validate bootstrap source layout
         run: |
+          set -eux
+          pwd
+          find . -maxdepth 4 -type f -print
           test -f Makefile
           test -f boot/x86_64/uefi/seed.S
           test -f boot/x86_64/uefi/seed.ld
