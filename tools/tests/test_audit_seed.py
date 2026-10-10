@@ -28,7 +28,7 @@ CONTENTS, ALLOC, LOAD, READONLY, DATA
 
 
 class AuditTests(unittest.TestCase):
-    def audit(self, readelf_status=0, nm_status=0):
+    def audit(self, readelf_status=0, nm_status=0, headers=HEADERS):
         with tempfile.TemporaryDirectory(prefix="algebra audit ") as root:
             root = Path(root)
             elf, efi = root / "seed.elf", root / "seed.efi"
@@ -37,7 +37,7 @@ class AuditTests(unittest.TestCase):
             objdump = root / "mock objdump"
             objdump.write_text(
                 "#!/bin/sh\nif [ \"$1\" = -p ]; then\n"
-                "cat <<'HEADERS'\n" + HEADERS + "HEADERS\nelse\n"
+                "cat <<'HEADERS'\n" + headers + "HEADERS\nelse\n"
                 "cat <<'SECTIONS'\n" + SECTIONS + "SECTIONS\nfi\n"
             )
             readelf, nm = root / "mock readelf", root / "mock nm"
@@ -64,6 +64,11 @@ class AuditTests(unittest.TestCase):
         result = self.audit(nm_status=7)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("nm could not inspect", result.stderr)
+
+    def test_nonzero_timestamp_in_1970_is_rejected(self):
+        result = self.audit(headers=HEADERS.replace("00:00:00 1970", "00:00:01 1970"))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("timestamp", result.stderr)
 
 
 if __name__ == "__main__":

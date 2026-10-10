@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 LC_ALL=C
-export LC_ALL
+TZ=UTC0
+export LC_ALL TZ
 
 if [ "$#" -ne 2 ]; then
 	printf 'usage: %s SEED_ELF SEED_EFI\n' "$0" >&2
@@ -34,7 +35,7 @@ printf '%s\n' "$pe_headers" | grep -Eq 'Subsystem[[:space:]]+0000000a' || \
 	fail 'image is not an EFI application'
 printf '%s\n' "$pe_headers" | grep -Eq 'AddressOfEntryPoint[[:space:]]+0000000000001000' || \
 	fail 'image entry point is not the start of .text'
-printf '%s\n' "$pe_headers" | grep -Eq 'Time/Date[[:space:]].*1970' || \
+printf '%s\n' "$pe_headers" | grep -Eq 'Time/Date[[:space:]]+Thu Jan[[:space:]]+1 00:00:00 1970$' || \
 	fail 'PE timestamp is not deterministic'
 if printf '%s\n' "$pe_headers" | grep -q 'relocations stripped'; then
 	fail 'image is marked as non-relocatable'
