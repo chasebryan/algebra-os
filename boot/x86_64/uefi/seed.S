@@ -171,7 +171,10 @@ boot_info:
 .p2align 3
 memory_map:
 	.fill 65536, 1, 0
-.p2align 4
+.p2align 12
+.global kernel_stack_guard
+kernel_stack_guard:
+	.fill 4096, 1, 0
 kernel_stack:
 	.fill 16384, 1, 0
 .global kernel_stack_top

@@ -12,6 +12,7 @@ spec = importlib.util.spec_from_file_location(
 )
 runner = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runner)
+MEMORY = b"Algebra frames 0001: extents=0000000000000002 free=0000000000000100\r\n"
 
 
 class Process:
@@ -44,7 +45,7 @@ class Process:
 
 class BootCheckTests(unittest.TestCase):
     def diagnostic(self):
-        lines = [runner.MARKER,
+        lines = [runner.MARKER, MEMORY,
                  b"Algebra fault 0001: vector=000000000000000e error=0000000000000000 "
                  b"rip=0000000000100000 cr2=0000400000000000\r\n"]
         for index, name in enumerate(sorted(runner.REGISTER_NAMES)):
@@ -63,6 +64,18 @@ class BootCheckTests(unittest.TestCase):
         self.assertIsNone(runner.fault_record(data.replace(b"rax=", b"rbx=")))
         self.assertIsNone(runner.fault_record(data.replace(b"Algebra state 0001:", b"missing state:")))
         self.assertIsNone(runner.fault_record(data.replace(runner.MARKER, b"") + runner.MARKER))
+
+    def test_memory_summary_requires_bounded_nonzero_counts(self):
+        self.assertEqual(runner.memory_record(MEMORY), {"free_extents": 2, "free_frames": 256})
+        self.assertIsNone(runner.memory_record(MEMORY.replace(b"0000000000000002", b"0000000000000000")))
+        self.assertIsNone(runner.memory_record(MEMORY.replace(b"0000000000000002", b"ffffffffffffffff")))
+        self.assertIsNone(runner.memory_record(b""))
+
+    def test_boot_records_without_inventory_counts_cannot_pass(self):
+        process = Process()
+        with self.assertRaisesRegex(RuntimeError, "absent"):
+            self.run_boot(process, runner.MARKER, timeout=True)
+        self.assertTrue(process.terminated)
 
     def run_boot(self, process, serial_bytes=b"", timeout=False):
         with tempfile.TemporaryDirectory() as root:
@@ -91,7 +104,7 @@ class BootCheckTests(unittest.TestCase):
 
     def test_marker_stops_and_reaps_emulator(self):
         process = Process()
-        self.run_boot(process, runner.MARKER)
+        self.run_boot(process, runner.MARKER + MEMORY)
         self.assertTrue(process.terminated)
         self.assertIsNotNone(process.exit_code)
 
@@ -116,7 +129,7 @@ class BootCheckTests(unittest.TestCase):
 
     def test_unresponsive_process_is_killed_and_reaped(self):
         process = Process(stubborn=True)
-        self.run_boot(process, runner.MARKER)
+        self.run_boot(process, runner.MARKER + MEMORY)
         self.assertTrue(process.terminated)
         self.assertTrue(process.killed)
         self.assertEqual(process.exit_code, -9)

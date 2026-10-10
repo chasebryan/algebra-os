@@ -63,7 +63,9 @@ Two fresh boots must each emit `Algebra serial 0001: uefi entry` and
 `Algebra memory map 0001: validated` over COM1 within 30 seconds.
 They must then emit `Algebra kernel 0001: boot services exited` after
 successful firmware termination and entry on the Algebra-owned stack.
-The final ordinary-boot gate is `Algebra machine 0001: descriptor tables installed`.
+Descriptor-table installation emits `Algebra machine 0001: descriptor tables installed`.
+It is followed by `Algebra memory 0001: own page tables active` and
+`Algebra frames 0001: inventory ready`, with measured free extent/frame counts.
 The firmware map is retrieved into a bounded buffer and its descriptor
 shape and address arithmetic are checked by the target assembly validator.
 See [ADR 0003](decisions/0003-bounded-firmware-memory-map.md).
@@ -88,5 +90,11 @@ make BUILD_DIR=build/fault-breakpoint ASFLAGS=--defsym=TEST_BREAKPOINT=1 \
 
 The exact cases, table layout, emergency stacks, and limitations are recorded
 in [ADR 0005](decisions/0005-processor-tables-and-faults.md).
+Four further variants exercise code and read-only-data writes, data execution,
+and a stack-guard read. Their page-fault error codes and attempted addresses
+must match the expected protection. `--expect-cr2-register NAME` checks CR2
+against a saved register when the image's load address varies. Paging and
+frame-catalog contracts are recorded in
+[ADR 0006](decisions/0006-owned-paging-and-frame-catalog.md).
 An individual passing run establishes evidence for the recorded inputs;
 changing firmware, emulator versions, or source requires a new run.

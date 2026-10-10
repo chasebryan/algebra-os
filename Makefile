@@ -19,7 +19,10 @@ SERIAL_OBJECT := $(SEED_DIR)/serial.o
 KERNEL_OBJECT := $(SEED_DIR)/kernel-entry.o
 PROCESSOR_OBJECT := $(SEED_DIR)/processor.o
 DESCRIPTOR_OBJECT := $(SEED_DIR)/descriptors.o
-SEED_OBJECTS := $(SEED_OBJECT) $(MAP_OBJECT) $(SERIAL_OBJECT) $(KERNEL_OBJECT) $(PROCESSOR_OBJECT) $(DESCRIPTOR_OBJECT)
+PAGING_OBJECT := $(SEED_DIR)/paging.o
+TABLE_OBJECT := $(SEED_DIR)/page-tables.o
+FRAME_OBJECT := $(SEED_DIR)/frames.o
+SEED_OBJECTS := $(SEED_OBJECT) $(MAP_OBJECT) $(SERIAL_OBJECT) $(KERNEL_OBJECT) $(PROCESSOR_OBJECT) $(DESCRIPTOR_OBJECT) $(PAGING_OBJECT) $(TABLE_OBJECT) $(FRAME_OBJECT)
 BOOT_CHECK_FLAGS ?=
 SEED_ELF := $(SEED_DIR)/seed.elf
 SEED_EFI := $(ESP_DIR)/EFI/BOOT/BOOTX64.EFI
@@ -49,6 +52,15 @@ $(PROCESSOR_OBJECT): boot/x86_64/uefi/processor.S | $(SEED_DIR)
 	$(AS) --64 --fatal-warnings $(ASFLAGS) -o $@ $<
 
 $(DESCRIPTOR_OBJECT): boot/x86_64/uefi/descriptors.S | $(SEED_DIR)
+	$(AS) --64 --fatal-warnings $(ASFLAGS) -o $@ $<
+
+$(PAGING_OBJECT): boot/x86_64/uefi/paging.S | $(SEED_DIR)
+	$(AS) --64 --fatal-warnings $(ASFLAGS) -o $@ $<
+
+$(TABLE_OBJECT): boot/x86_64/uefi/page-tables.S | $(SEED_DIR)
+	$(AS) --64 --fatal-warnings $(ASFLAGS) -o $@ $<
+
+$(FRAME_OBJECT): boot/x86_64/uefi/frames.S | $(SEED_DIR)
 	$(AS) --64 --fatal-warnings $(ASFLAGS) -o $@ $<
 
 $(SEED_ELF): $(SEED_OBJECTS) boot/x86_64/uefi/seed.ld

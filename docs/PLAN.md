@@ -22,11 +22,13 @@ hashes, serial logs, and per-boot result. CI also runs the host regression
 tests, which execute the target memory-map validator on boundary cases.
 See [BOOTSTRAP.md](BOOTSTRAP.md) and ADRs 0002–0004 for exact evidence limits.
 
-M2 has begun: Algebra-owned GDT, TSS, and IDT installation plus terminal
-fault diagnostics are implemented. Six deliberately raised fault cases
-exercise ordinary and CPU-error-code frames and the double-fault emergency
-stack. Owned page tables, executable/data enforcement, and frame accounting
-remain next. The kernel still inherits firmware address translation.
+M2 mechanisms are implemented under the emulator profile: owned GDT/TSS/IDT,
+four-level page tables, supervisor write protection, executable/data
+separation, stack guards, and a sorted physical-frame catalog that excludes
+the resident image. Deliberate exceptions, double-fault stack recovery, and
+four memory-protection faults gate the tested paths. See ADRs 0005–0006
+for the bounded image layout, evidence, and limitations. Allocation,
+user-mode entry, distinct user address spaces, and preemption are next.
 
 ## 1. Charter
 

@@ -18,6 +18,8 @@ REQUIRED_RECORDS = (
     b"Algebra memory map 0001: validated\r\n",
     b"Algebra kernel 0001: boot services exited\r\n",
     b"Algebra machine 0001: descriptor tables installed\r\n",
+    b"Algebra memory 0001: own page tables active\r\n",
+    b"Algebra frames 0001: inventory ready\r\n",
 )
 MARKER = b"".join(REQUIRED_RECORDS)
 FAULT_COMPLETE = b"Algebra fault 0001: diagnostics complete\r\n"
@@ -40,6 +42,16 @@ def records_seen(data):
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def memory_record(data):
+    match = re.search(rb"Algebra frames 0001: extents=([0-9a-f]{16}) free=([0-9a-f]{16})\r\n", data)
+    if match is None:
+        return None
+    extents, frames = (int(value, 16) for value in match.groups())
+    if not 0 < extents <= 1639 or not extents <= frames <= 1 << 52:
+        return None
+    return {"free_extents": extents, "free_frames": frames}
 
 
 def fault_record(data):
@@ -70,7 +82,7 @@ def fault_record(data):
     return result
 
 
-def boot(qemu, esp, code, variables, output, timeout, expected_fault=None, expected_error=None, expected_cr2=None, expected_registers=None):
+def boot(qemu, esp, code, variables, output, timeout, expected_fault=None, expected_error=None, expected_cr2=None, expected_registers=None, cr2_register=None):
     serial = output / "serial.log"
     with tempfile.TemporaryDirectory(prefix="algebra-boot-") as scratch:
         scratch = Path(scratch)
@@ -95,7 +107,7 @@ def boot(qemu, esp, code, variables, output, timeout, expected_fault=None, expec
                 while True:
                     if serial.is_file():
                         data = serial.read_bytes()
-                        if records_seen(data):
+                        if records_seen(data) and memory_record(data) is not None:
                             if expected_fault is None:
                                 return None
                             fault = fault_record(data)
@@ -107,6 +119,8 @@ def boot(qemu, esp, code, variables, output, timeout, expected_fault=None, expec
                                     observed = fault.get(name, fault["registers"].get(name))
                                     if observed != expected:
                                         raise RuntimeError(f"saved {name}: expected {expected:#x}, observed {observed:#x}")
+                                if cr2_register and fault["cr2"] != fault["registers"][cr2_register]:
+                                    raise RuntimeError(f"CR2 does not match saved {cr2_register}")
                                 return fault
                     if process.poll() is not None:
                         raise RuntimeError(f"QEMU exited before the seed record: {process.returncode}")
@@ -135,6 +149,7 @@ def main():
     parser.add_argument("--expect-error", type=lambda value: int(value, 0))
     parser.add_argument("--expect-cr2", type=lambda value: int(value, 0))
     parser.add_argument("--expect-register", action="append", default=[], metavar="NAME=VALUE")
+    parser.add_argument("--expect-cr2-register", choices=sorted(REGISTER_NAMES))
     args = parser.parse_args()
     registers = {}
     for item in args.expect_register:
@@ -146,7 +161,7 @@ def main():
         if name not in REGISTER_NAMES | {"rsp", "rflags"} or name in registers or not 0 <= value < 1 << 64:
             parser.error(f"invalid or duplicate register expectation: {item}")
         registers[name] = value
-    if args.expect_fault is None and (args.expect_error is not None or args.expect_cr2 is not None or registers):
+    if args.expect_fault is None and (args.expect_error is not None or args.expect_cr2 is not None or registers or args.expect_cr2_register):
         parser.error("expected error and CR2 require --expect-fault")
     if any(value is not None and not 0 <= value < 1 << 64 for value in (args.expect_error, args.expect_cr2)):
         parser.error("expected error and CR2 must fit an unsigned 64-bit value")
@@ -175,14 +190,16 @@ def main():
         "boots": [], "passed": False,
         "expected_fault": args.expect_fault, "expected_error": args.expect_error, "expected_cr2": args.expect_cr2,
         "expected_registers": registers,
+        "expected_cr2_register": args.expect_cr2_register,
     }
     try:
         for number in (1, 2):
             boot_output = output / f"boot-{number}"
             boot_output.mkdir()
             fault = boot(qemu, esp, code, variables, boot_output, args.timeout,
-                         args.expect_fault, args.expect_error, args.expect_cr2, registers)
-            result["boots"].append({"number": number, "marker_seen": True, "fault": fault})
+                         args.expect_fault, args.expect_error, args.expect_cr2, registers, args.expect_cr2_register)
+            memory = memory_record((boot_output / "serial.log").read_bytes())
+            result["boots"].append({"number": number, "marker_seen": True, "fault": fault, "memory": memory})
         result["passed"] = True
     except (OSError, RuntimeError) as error:
         result["error"] = str(error)
