@@ -1,5 +1,7 @@
 #!/bin/sh
 set -eu
+LC_ALL=C
+export LC_ALL
 
 if [ "$#" -ne 2 ]; then
 	printf 'usage: %s SEED_ELF SEED_EFI\n' "$0" >&2
@@ -21,8 +23,8 @@ fail()
 [ -s "$seed_elf" ] || fail "missing ELF intermediate: $seed_elf"
 [ -s "$seed_efi" ] || fail "missing EFI image: $seed_efi"
 
-pe_headers=$($objdump -p "$seed_efi")
-pe_sections=$($objdump -h "$seed_efi")
+pe_headers=$("$objdump" -p "$seed_efi") || fail 'objdump could not inspect PE headers'
+pe_sections=$("$objdump" -h "$seed_efi") || fail 'objdump could not inspect PE sections'
 
 printf '%s\n' "$pe_headers" | grep -q 'file format pei-x86-64' || \
 	fail 'image is not x86_64 PE/COFF'
@@ -66,11 +68,13 @@ printf '%s\n' "$pe_sections" | awk '
 	END { exit ok ? 0 : 1 }
 ' || fail '.data is not writable, non-executable data'
 
-if "$readelf" --dynamic "$seed_elf" 2>&1 | grep -q '(NEEDED)'; then
+elf_dynamic=$("$readelf" --dynamic "$seed_elf") || fail 'readelf could not inspect ELF dependencies'
+if printf '%s\n' "$elf_dynamic" | grep -q '(NEEDED)'; then
 	fail 'ELF intermediate has a runtime dependency'
 fi
 
-if [ -n "$("$nm" --undefined-only "$seed_elf")" ]; then
+elf_undefined=$("$nm" --undefined-only "$seed_elf") || fail 'nm could not inspect ELF symbols'
+if [ -n "$elf_undefined" ]; then
 	fail 'ELF intermediate has undefined symbols'
 fi
 
