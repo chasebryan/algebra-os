@@ -1,0 +1,44 @@
+name: Bootstrap seed
+
+on:
+  push:
+    branches:
+      - main
+      - "codex/**"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bootstrap-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-seed:
+    name: Build and audit UEFI seed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install bootstrap host tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes             binutils build-essential
+
+      - name: Build, audit, and verify reproducibility
+        run: make check
+
+      - name: Publish seed image
+        if: always() && hashFiles('build/esp/EFI/BOOT/BOOTX64.EFI') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: algebra-uefi-seed-${{ github.sha }}
+          path: build/esp/EFI/BOOT/BOOTX64.EFI
+          if-no-files-found: error
