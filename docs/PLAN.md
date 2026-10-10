@@ -22,9 +22,11 @@ hashes, serial logs, and per-boot result. CI also runs the host regression
 tests, which execute the target memory-map validator on boundary cases.
 See [BOOTSTRAP.md](BOOTSTRAP.md) and ADRs 0002–0004 for exact evidence limits.
 
-M2 remains next: Algebra-owned processor tables, fault handling, page
-tables, and frame accounting. The current kernel stub still inherits
-firmware processor state and halts after its diagnostic.
+M2 has begun: Algebra-owned GDT, TSS, and IDT installation plus terminal
+fault diagnostics are implemented. Six deliberately raised fault cases
+exercise ordinary and CPU-error-code frames and the double-fault emergency
+stack. Owned page tables, executable/data enforcement, and frame accounting
+remain next. The kernel still inherits firmware address translation.
 
 ## 1. Charter
 

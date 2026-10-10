@@ -26,6 +26,34 @@ kernel_entry:
 	jnz .Lbad_info
 	leaq kernel_message(%rip), %r8
 	call serial_write
+	call install_processor_tables
+	leaq processor_message(%rip), %r8
+	call serial_write
+.ifdef TEST_BREAKPOINT
+	int3
+.endif
+.ifdef TEST_INVALID_OPCODE
+	ud2
+.endif
+.ifdef TEST_DIVIDE_ERROR
+	xorl %ecx, %ecx
+	movl $1, %eax
+	xorl %edx, %edx
+	divq %rcx
+.endif
+.ifdef TEST_GENERAL_PROTECTION
+	movw $0xfff8, %ax
+	movw %ax, %ds
+.endif
+.ifdef TEST_PAGE_FAULT
+	movabsq $0x0000400000000000, %rax
+	movq (%rax), %rax
+.endif
+.ifdef TEST_DOUBLE_FAULT
+	xorq %rsp, %rsp
+	movw $0xfff8, %ax
+	movw %ax, %ds
+.endif
 	jmp .Lhalt
 .Lbad_info:
 	leaq kernel_failure(%rip), %r8
@@ -40,4 +68,6 @@ kernel_message:
 	.asciz "Algebra kernel 0001: boot services exited\r\n"
 kernel_failure:
 	.asciz "Algebra kernel 0001: invalid boot information\r\n"
+processor_message:
+	.asciz "Algebra machine 0001: descriptor tables installed\r\n"
 .section .note.GNU-stack, "", @progbits

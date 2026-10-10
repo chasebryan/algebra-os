@@ -17,6 +17,10 @@ SEED_OBJECT := $(SEED_DIR)/seed.o
 MAP_OBJECT := $(SEED_DIR)/memory-map.o
 SERIAL_OBJECT := $(SEED_DIR)/serial.o
 KERNEL_OBJECT := $(SEED_DIR)/kernel-entry.o
+PROCESSOR_OBJECT := $(SEED_DIR)/processor.o
+DESCRIPTOR_OBJECT := $(SEED_DIR)/descriptors.o
+SEED_OBJECTS := $(SEED_OBJECT) $(MAP_OBJECT) $(SERIAL_OBJECT) $(KERNEL_OBJECT) $(PROCESSOR_OBJECT) $(DESCRIPTOR_OBJECT)
+BOOT_CHECK_FLAGS ?=
 SEED_ELF := $(SEED_DIR)/seed.elf
 SEED_EFI := $(ESP_DIR)/EFI/BOOT/BOOTX64.EFI
 
@@ -41,9 +45,15 @@ $(SERIAL_OBJECT): boot/x86_64/uefi/serial.S | $(SEED_DIR)
 $(KERNEL_OBJECT): boot/x86_64/uefi/kernel-entry.S | $(SEED_DIR)
 	$(AS) --64 --fatal-warnings $(ASFLAGS) -o $@ $<
 
-$(SEED_ELF): $(SEED_OBJECT) $(MAP_OBJECT) $(SERIAL_OBJECT) $(KERNEL_OBJECT) boot/x86_64/uefi/seed.ld
+$(PROCESSOR_OBJECT): boot/x86_64/uefi/processor.S | $(SEED_DIR)
+	$(AS) --64 --fatal-warnings $(ASFLAGS) -o $@ $<
+
+$(DESCRIPTOR_OBJECT): boot/x86_64/uefi/descriptors.S | $(SEED_DIR)
+	$(AS) --64 --fatal-warnings $(ASFLAGS) -o $@ $<
+
+$(SEED_ELF): $(SEED_OBJECTS) boot/x86_64/uefi/seed.ld
 	$(LD) -nostdlib --fatal-warnings --build-id=none \
-		-T boot/x86_64/uefi/seed.ld -o $@ $(SEED_OBJECT) $(MAP_OBJECT) $(SERIAL_OBJECT) $(KERNEL_OBJECT)
+		-T boot/x86_64/uefi/seed.ld -o $@ $(SEED_OBJECTS)
 
 $(SEED_EFI): $(SEED_ELF) | $(ESP_DIR)/EFI/BOOT
 	SOURCE_DATE_EPOCH=0 $(OBJCOPY) \
@@ -77,4 +87,4 @@ check: audit reproducible
 boot-check: audit
 	$(PYTHON) tools/boot-check.py --esp "$(ESP_DIR)" \
 		--evidence "$(BUILD_DIR)/boot-evidence" --qemu "$(QEMU)" \
-		--code "$(OVMF_CODE)" --vars "$(OVMF_VARS)"
+		--code "$(OVMF_CODE)" --vars "$(OVMF_VARS)" $(BOOT_CHECK_FLAGS)

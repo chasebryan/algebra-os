@@ -63,6 +63,7 @@ Two fresh boots must each emit `Algebra serial 0001: uefi entry` and
 `Algebra memory map 0001: validated` over COM1 within 30 seconds.
 They must then emit `Algebra kernel 0001: boot services exited` after
 successful firmware termination and entry on the Algebra-owned stack.
+The final ordinary-boot gate is `Algebra machine 0001: descriptor tables installed`.
 The firmware map is retrieved into a bounded buffer and its descriptor
 shape and address arithmetic are checked by the target assembly validator.
 See [ADR 0003](decisions/0003-bounded-firmware-memory-map.md).
@@ -75,5 +76,17 @@ The boot-information contract and firmware-exit behavior are in
 [ADR 0004](decisions/0004-controlled-kernel-handoff.md).
 
 The GitHub workflow runs both checks and publishes the image and boot logs.
+It additionally runs six deliberate processor-fault variants, requiring
+two boots and full register diagnostics for each. `BOOT_CHECK_FLAGS` accepts
+`--expect-fault`, `--expect-error`, `--expect-cr2`, and repeatable
+`--expect-register NAME=VALUE` expectations. For example:
+
+```sh
+make BUILD_DIR=build/fault-breakpoint ASFLAGS=--defsym=TEST_BREAKPOINT=1 \
+  BOOT_CHECK_FLAGS='--expect-fault 3 --expect-error 0' boot-check
+```
+
+The exact cases, table layout, emergency stacks, and limitations are recorded
+in [ADR 0005](decisions/0005-processor-tables-and-faults.md).
 An individual passing run establishes evidence for the recorded inputs;
 changing firmware, emulator versions, or source requires a new run.

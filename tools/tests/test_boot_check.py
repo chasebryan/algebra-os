@@ -43,6 +43,27 @@ class Process:
 
 
 class BootCheckTests(unittest.TestCase):
+    def diagnostic(self):
+        lines = [runner.MARKER,
+                 b"Algebra fault 0001: vector=000000000000000e error=0000000000000000 "
+                 b"rip=0000000000100000 cr2=0000400000000000\r\n"]
+        for index, name in enumerate(sorted(runner.REGISTER_NAMES)):
+            lines.append(f"Algebra register 0001: {name:3}={index:016x}\r\n".encode("ascii"))
+        lines.extend([b"Algebra state 0001: rsp=0000000000200000 rflags=0000000000000046\r\n",
+                      runner.FAULT_COMPLETE])
+        return b"".join(lines)
+
+    def test_fault_capture_requires_every_register_and_completion(self):
+        data = self.diagnostic()
+        fault = runner.fault_record(data)
+        self.assertEqual(fault["vector"], 14)
+        self.assertEqual(fault["cr2"], 0x400000000000)
+        self.assertEqual(set(fault["registers"]), runner.REGISTER_NAMES)
+        self.assertIsNone(runner.fault_record(data.replace(runner.FAULT_COMPLETE, b"")))
+        self.assertIsNone(runner.fault_record(data.replace(b"rax=", b"rbx=")))
+        self.assertIsNone(runner.fault_record(data.replace(b"Algebra state 0001:", b"missing state:")))
+        self.assertIsNone(runner.fault_record(data.replace(runner.MARKER, b"") + runner.MARKER))
+
     def run_boot(self, process, serial_bytes=b"", timeout=False):
         with tempfile.TemporaryDirectory() as root:
             root = Path(root)
