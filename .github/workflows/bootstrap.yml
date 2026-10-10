@@ -1,0 +1,72 @@
+name: Bootstrap seed
+
+on:
+  push:
+    branches:
+      - main
+      - "codex/**"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bootstrap-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-seed:
+    name: Build and audit UEFI seed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Validate bootstrap source layout
+        run: |
+          test -f Makefile
+          test -f boot/x86_64/uefi/seed.S
+          test -f boot/x86_64/uefi/seed.ld
+          test -f tools/audit-seed.sh
+          sh -n tools/audit-seed.sh
+
+      - name: Install bootstrap host tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes \
+            binutils \
+            build-essential \
+            python3 \
+            qemu-system-x86 \
+            ovmf
+
+      - name: Build, audit, and verify reproducibility
+        run: |
+          make check
+          mkdir -p build/boot-evidence
+          dpkg-query -W binutils make python3 qemu-system-x86 ovmf > build/boot-evidence/host-packages.txt
+
+      - name: Boot twice with fresh firmware variables
+        run: |
+          python3 -m unittest discover -s tools/tests -v
+          make boot-check
+
+      - name: Recover from a deliberately stale first map key
+        run: make BUILD_DIR=build/stale-key ASFLAGS=--defsym=TEST_STALE_MAP_KEY=1 boot-check
+
+      - name: Publish seed image
+        if: always() && hashFiles('build/esp/EFI/BOOT/BOOTX64.EFI') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: algebra-uefi-seed-${{ github.sha }}
+          path: |
+            build/esp/EFI/BOOT/BOOTX64.EFI
+            build/boot-evidence/
+            build/stale-key/esp/EFI/BOOT/BOOTX64.EFI
+            build/stale-key/boot-evidence/
+          if-no-files-found: error

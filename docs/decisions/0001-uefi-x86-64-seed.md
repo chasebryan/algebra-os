@@ -4,6 +4,9 @@
 - **Date:** 2026-07-28
 - **Scope:** seed bootstrap only
 
+This records the original seed boundary. [ADR 0002](0002-emulator-serial-evidence.md)
+extends it with bounded COM1 diagnostics and an emulator evidence procedure.
+
 ## Context
 
 Algebra needs an inspectable first transition from platform firmware into
@@ -43,10 +46,9 @@ premises. It does not make them part of Algebra, and it does not decide the
 post-`ExitBootServices` kernel contract.
 
 The seed proves only that Algebra can construct an inspectable firmware image.
-Runtime boot evidence remains absent until the image is exercised under a
-recorded emulator/OVMF version. Deterministic serial diagnostics, the boot
-information contract, memory-map handling, and the kernel transition remain
-M1 work.
+Runtime boot evidence is now collected by the emulator procedure in ADR 0002.
+The boot-information contract, memory-map handling, and kernel transition
+remain M1 work.
 
 Legacy BIOS and third-party bootloaders are outside the initial route. Secure
 Boot signing is deferred; accepting an unsigned development image is an

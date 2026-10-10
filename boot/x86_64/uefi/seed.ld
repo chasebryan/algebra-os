@@ -4,6 +4,7 @@ ENTRY(efi_main)
 
 SECTIONS
 {
+	__image_base = 0;
 	. = 0x1000;
 	.text : ALIGN(0x1000)
 	{
@@ -29,6 +30,7 @@ SECTIONS
 	{
 		KEEP(*(.reloc))
 	}
+	__image_end = ALIGN(0x1000);
 
 	/DISCARD/ :
 	{
@@ -44,3 +46,4 @@ ASSERT((__data_page & 0xfff) == 0,
 	"base-relocation page must be 4 KiB aligned")
 ASSERT(SIZEOF(.reloc) == 12,
 	"seed must contain exactly one padded base-relocation block")
+ASSERT((kernel_stack_top & 15) == 0, "kernel stack must be 16-byte aligned")
