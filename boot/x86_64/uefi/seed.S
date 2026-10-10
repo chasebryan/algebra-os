@@ -26,6 +26,53 @@ efi_main:
 	movq EFI_SIMPLE_TEXT_OUTPUT_STRING(%rcx), %rax
 	call *%rax
 
+	/* Preserve OutputString's status across bounded COM1 diagnostics.
+	 * Only volatile x64 ABI registers are used below. See ADR 0002.
+	 */
+	movq %rax, %r11
+	movw $0x3f9, %dx
+	xorb %al, %al
+	outb %al, %dx                 /* Disable UART interrupts. */
+	movw $0x3fb, %dx
+	movb $0x80, %al
+	outb %al, %dx                 /* Divisor latch access. */
+	movw $0x3f8, %dx
+	movb $1, %al
+	outb %al, %dx                 /* 115200 baud: divisor 1. */
+	movw $0x3f9, %dx
+	xorb %al, %al
+	outb %al, %dx
+	movw $0x3fb, %dx
+	movb $3, %al
+	outb %al, %dx                 /* Eight data bits, no parity, one stop. */
+	movw $0x3fa, %dx
+	movb $7, %al
+	outb %al, %dx                 /* Enable and clear FIFOs. */
+	movw $0x3fc, %dx
+	movb $3, %al
+	outb %al, %dx                 /* DTR and RTS. */
+	leaq serial_message(%rip), %r8
+.Lserial_next:
+	movb (%r8), %r10b
+	testb %r10b, %r10b
+	jz .Lserial_done
+	movl $65536, %r9d
+	movw $0x3fd, %dx
+.Lserial_wait:
+	inb %dx, %al
+	testb $0x20, %al
+	jnz .Lserial_send
+	decl %r9d
+	jnz .Lserial_wait
+	jmp .Lserial_done             /* A missing UART cannot hang the seed. */
+.Lserial_send:
+	movw $0x3f8, %dx
+	movb %r10b, %al
+	outb %al, %dx
+	incq %r8
+	jmp .Lserial_next
+.Lserial_done:
+	movq %r11, %rax
 	leave
 	ret
 .size efi_main, . - efi_main
@@ -37,6 +84,9 @@ seed_message:
 	.short 's', 'e', 'e', 'd', ' ', '0', '0', '0', '1'
 	.short ':', ' ', 'x', '8', '6', '_', '6', '4', ' ', 'u', 'e', 'f', 'i'
 	.short 13, 10, 0
+
+serial_message:
+	.asciz "Algebra serial 0001: uefi entry\r\n"
 
 /*
  * Keeping the message address as data gives the seed one real DIR64 base

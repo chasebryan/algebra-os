@@ -4,6 +4,10 @@ OBJCOPY ?= objcopy
 OBJDUMP ?= objdump
 READELF ?= readelf
 NM ?= nm
+PYTHON ?= python3
+QEMU ?= qemu-system-x86_64
+OVMF_CODE ?= /usr/share/OVMF/OVMF_CODE_4M.fd
+OVMF_VARS ?= /usr/share/OVMF/OVMF_VARS_4M.fd
 
 BUILD_DIR ?= build
 SEED_DIR := $(BUILD_DIR)/seed
@@ -14,7 +18,7 @@ SEED_EFI := $(ESP_DIR)/EFI/BOOT/BOOTX64.EFI
 
 .DEFAULT_GOAL := all
 
-.PHONY: all audit check reproducible
+.PHONY: all audit check reproducible boot-check
 
 all: $(SEED_EFI)
 
@@ -56,3 +60,8 @@ reproducible:
 	printf '%s\n' 'reproducibility: identical clean-build images'
 
 check: audit reproducible
+
+boot-check: audit
+	$(PYTHON) tools/boot-check.py --esp "$(ESP_DIR)" \
+		--evidence "$(BUILD_DIR)/boot-evidence" --qemu "$(QEMU)" \
+		--code "$(OVMF_CODE)" --vars "$(OVMF_VARS)"

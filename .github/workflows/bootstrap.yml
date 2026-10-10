@@ -40,15 +40,28 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends --yes \
             binutils \
-            build-essential
+            build-essential \
+            python3 \
+            qemu-system-x86 \
+            ovmf
 
       - name: Build, audit, and verify reproducibility
-        run: make check
+        run: |
+          make check
+          mkdir -p build/boot-evidence
+          dpkg-query -W binutils make python3 qemu-system-x86 ovmf > build/boot-evidence/host-packages.txt
+
+      - name: Boot twice with fresh firmware variables
+        run: |
+          python3 -m unittest discover -s tools/tests -v
+          make boot-check
 
       - name: Publish seed image
         if: always() && hashFiles('build/esp/EFI/BOOT/BOOTX64.EFI') != ''
         uses: actions/upload-artifact@v4
         with:
           name: algebra-uefi-seed-${{ github.sha }}
-          path: build/esp/EFI/BOOT/BOOTX64.EFI
+          path: |
+            build/esp/EFI/BOOT/BOOTX64.EFI
+            build/boot-evidence/
           if-no-files-found: error
