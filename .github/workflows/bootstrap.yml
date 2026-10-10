@@ -69,6 +69,13 @@ jobs:
           make BUILD_DIR=build/fault-page ASFLAGS=--defsym=TEST_PAGE_FAULT=1 BOOT_CHECK_FLAGS='--expect-fault 14 --expect-error 0 --expect-cr2 0x400000000000 --expect-register rax=0x400000000000' boot-check
           make BUILD_DIR=build/fault-double ASFLAGS=--defsym=TEST_DOUBLE_FAULT=1 BOOT_CHECK_FLAGS='--expect-fault 8 --expect-error 0 --expect-register rsp=0' boot-check
 
+      - name: Enforce supervisor write protection, NX, and stack guards
+        run: |
+          make BUILD_DIR=build/fault-write-code ASFLAGS=--defsym=TEST_WRITE_CODE=1 BOOT_CHECK_FLAGS='--expect-fault 14 --expect-error 3 --expect-cr2-register rax' boot-check
+          make BUILD_DIR=build/fault-write-rodata ASFLAGS=--defsym=TEST_WRITE_RODATA=1 BOOT_CHECK_FLAGS='--expect-fault 14 --expect-error 3 --expect-cr2-register rax' boot-check
+          make BUILD_DIR=build/fault-execute-data ASFLAGS=--defsym=TEST_EXECUTE_DATA=1 BOOT_CHECK_FLAGS='--expect-fault 14 --expect-error 0x11 --expect-cr2-register rax' boot-check
+          make BUILD_DIR=build/fault-stack-guard ASFLAGS=--defsym=TEST_STACK_GUARD=1 BOOT_CHECK_FLAGS='--expect-fault 14 --expect-error 0 --expect-cr2-register rax' boot-check
+
       - name: Publish seed image
         if: always() && hashFiles('build/esp/EFI/BOOT/BOOTX64.EFI') != ''
         uses: actions/upload-artifact@v4

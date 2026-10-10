@@ -201,13 +201,22 @@ fault_rsp:
 fault_flags:
 	.fill 16, 1, '0'
 	.asciz "\r\n"
-.p2align 4
+.p2align 12
+.global df_stack_guard
+df_stack_guard:
+	.fill 4096, 1, 0
 df_stack:
 	.fill 16384, 1, 0
 df_stack_top:
+.global nmi_stack_guard
+nmi_stack_guard:
+	.fill 4096, 1, 0
 nmi_stack:
 	.fill 16384, 1, 0
 nmi_stack_top:
+.global mc_stack_guard
+mc_stack_guard:
+	.fill 4096, 1, 0
 mc_stack:
 	.fill 16384, 1, 0
 mc_stack_top:
