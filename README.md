@@ -4,9 +4,11 @@
 
 **Algebra** is a from-scratch operating system for x86_64: minimal at its privileged foundation, powerful through composition, and intended to remain understandable from firmware handoff to native development environment.
 
-> **Status:** bootstrap seed. An inspectable x86_64 UEFI seed image can be built,
-> with static and reproducibility checks plus a QEMU/OVMF boot-evidence test.
-> A kernel and evidence of security or formal verification do not yet exist.
+> **Status:** controlled emulator handoff. The original x86_64 UEFI image
+> validates its firmware memory map, exits boot services, and enters an
+> embedded kernel stub on its own stack. Static checks, reproducibility,
+> and two QEMU/OVMF boots gate the bootstrap. Machine foundations and
+> evidence of security or formal verification remain future work.
 
 Algebra is not Linux, a Linux distribution, or a fork of another operating system. It is a project by Chase Bryan.
 

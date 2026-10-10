@@ -3,6 +3,9 @@
 - **Status:** accepted for emulator bootstrap
 - **Scope:** preparing the loader's firmware handoff
 
+[ADR 0004](0004-controlled-kernel-handoff.md) extends this map retrieval
+with bounded firmware-exit retries and the versioned kernel handoff.
+
 ## Decision
 
 The seed calls UEFI `GetMemoryMap` after its console diagnostic, using a

@@ -14,6 +14,8 @@ SEED_DIR := $(BUILD_DIR)/seed
 ESP_DIR := $(BUILD_DIR)/esp
 SEED_OBJECT := $(SEED_DIR)/seed.o
 MAP_OBJECT := $(SEED_DIR)/memory-map.o
+SERIAL_OBJECT := $(SEED_DIR)/serial.o
+KERNEL_OBJECT := $(SEED_DIR)/kernel-entry.o
 SEED_ELF := $(SEED_DIR)/seed.elf
 SEED_EFI := $(ESP_DIR)/EFI/BOOT/BOOTX64.EFI
 
@@ -32,9 +34,15 @@ $(SEED_OBJECT): boot/x86_64/uefi/seed.S | $(SEED_DIR)
 $(MAP_OBJECT): boot/x86_64/uefi/memory-map.S | $(SEED_DIR)
 	$(AS) --64 --fatal-warnings -o $@ $<
 
-$(SEED_ELF): $(SEED_OBJECT) $(MAP_OBJECT) boot/x86_64/uefi/seed.ld
+$(SERIAL_OBJECT): boot/x86_64/uefi/serial.S | $(SEED_DIR)
+	$(AS) --64 --fatal-warnings -o $@ $<
+
+$(KERNEL_OBJECT): boot/x86_64/uefi/kernel-entry.S | $(SEED_DIR)
+	$(AS) --64 --fatal-warnings -o $@ $<
+
+$(SEED_ELF): $(SEED_OBJECT) $(MAP_OBJECT) $(SERIAL_OBJECT) $(KERNEL_OBJECT) boot/x86_64/uefi/seed.ld
 	$(LD) -nostdlib --fatal-warnings --build-id=none \
-		-T boot/x86_64/uefi/seed.ld -o $@ $(SEED_OBJECT) $(MAP_OBJECT)
+		-T boot/x86_64/uefi/seed.ld -o $@ $(SEED_OBJECT) $(MAP_OBJECT) $(SERIAL_OBJECT) $(KERNEL_OBJECT)
 
 $(SEED_EFI): $(SEED_ELF) | $(ESP_DIR)/EFI/BOOT
 	SOURCE_DATE_EPOCH=0 $(OBJCOPY) \

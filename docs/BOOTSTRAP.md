@@ -61,6 +61,8 @@ and variable files. Defaults are `/usr/share/OVMF/OVMF_CODE_4M.fd` and
 
 Two fresh boots must each emit `Algebra serial 0001: uefi entry` and
 `Algebra memory map 0001: validated` over COM1 within 30 seconds.
+They must then emit `Algebra kernel 0001: boot services exited` after
+successful firmware termination and entry on the Algebra-owned stack.
 The firmware map is retrieved into a bounded buffer and its descriptor
 shape and address arithmetic are checked by the target assembly validator.
 See [ADR 0003](decisions/0003-bounded-firmware-memory-map.md).
@@ -69,6 +71,8 @@ Logs and measured inputs are retained under
 variable template are copied before starting the guest. See
 [ADR 0002](decisions/0002-emulator-serial-evidence.md) for the complete
 profile, bounded UART behavior, and precise limits of this evidence.
+The boot-information contract and firmware-exit behavior are in
+[ADR 0004](decisions/0004-controlled-kernel-handoff.md).
 
 The GitHub workflow runs both checks and publishes the image and boot logs.
 An individual passing run establishes evidence for the recorded inputs;

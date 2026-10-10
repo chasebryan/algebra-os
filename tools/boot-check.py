@@ -11,10 +11,22 @@ import tempfile
 import time
 
 
-MARKER = (
-    b"Algebra serial 0001: uefi entry\r\n"
-    b"Algebra memory map 0001: validated\r\n"
+REQUIRED_RECORDS = (
+    b"Algebra serial 0001: uefi entry\r\n",
+    b"Algebra memory map 0001: validated\r\n",
+    b"Algebra kernel 0001: boot services exited\r\n",
 )
+MARKER = b"".join(REQUIRED_RECORDS)
+
+
+def records_seen(data):
+    position = 0
+    for record in REQUIRED_RECORDS:
+        found = data.find(record, position)
+        if found < 0:
+            return False
+        position = found + len(record)
+    return True
 
 
 def digest(path):
@@ -43,7 +55,7 @@ def boot(qemu, esp, code, variables, output, timeout):
             try:
                 deadline = time.monotonic() + timeout
                 while True:
-                    if serial.is_file() and MARKER in serial.read_bytes():
+                    if serial.is_file() and records_seen(serial.read_bytes()):
                         return
                     if process.poll() is not None:
                         raise RuntimeError(f"QEMU exited before the seed record: {process.returncode}")
@@ -107,7 +119,7 @@ def main():
     print(f"boot evidence: {output}", flush=True)
     if not result["passed"]:
         raise SystemExit(result.get("error", "boot check failed"))
-    print("boot check: Algebra serial record observed in two fresh boots")
+    print("boot check: kernel handoff records observed in two fresh boots")
 
 
 if __name__ == "__main__":

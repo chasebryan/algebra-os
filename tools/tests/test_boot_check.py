@@ -79,6 +79,13 @@ class BootCheckTests(unittest.TestCase):
             self.run_boot(process, b"Algebra seed 0001: x86_64 uefi\r\n", timeout=True)
         self.assertTrue(process.terminated)
 
+    def test_entry_and_map_records_cannot_satisfy_kernel_handoff(self):
+        self.assertFalse(runner.records_seen(b"".join(runner.REQUIRED_RECORDS[:2])))
+
+    def test_records_must_appear_in_order(self):
+        self.assertFalse(runner.records_seen(b"".join(reversed(runner.REQUIRED_RECORDS))))
+        self.assertTrue(runner.records_seen(b"firmware output\n".join(runner.REQUIRED_RECORDS)))
+
     def test_early_emulator_exit_fails(self):
         process = Process(exit_code=1)
         with self.assertRaisesRegex(RuntimeError, "exited"):
